@@ -53,35 +53,80 @@ public class Game implements Serializable, ActionListener {
         this.gameSettings = gameSettings;
         this.playerList = buildPlayerArray(gameSettings);
         this.gameGui = new GameGui(gameSettings);
-        HelperStartGameDialog startGameDialog = new HelperStartGameDialog();
-        boolean dialogResult = startGameDialog.getResult();
-        if(dialogResult == true){
-        	gamePreperation();
+       	gamePreperation();
+    }
+    
+    /**
+     * Erstellt die Spieler
+     *
+     * @param Settings gameSettings
+     * @return ArrayList<Player> playerList
+     */
+    private ArrayList buildPlayerArray(Settings gameSettings) {
+        this.playerList = new ArrayList<>();
+        int playerNumber = 1;
+        for (int i = 0; i < gameSettings.getAmountOfPlayer(); i++) {
+            if (gameSettings.getAiArray()[i] == false) {
+                Player player = new HumanPlayer(playerNumber, gameSettings.getPlayerNames()[i], gameSettings, false);
+                playerList.add(player);
+                playerNumber++;
+            } else if (gameSettings.getAiArray()[i] == true) {
+                AiPlayer player = new AiPlayer(playerNumber, gameSettings.getPlayerNames()[i], gameSettings, true);
+                playerList.add(player);
+                playerNumber++;
+            }
         }
+        return playerList;
     }
     
     /**
      * Vorbereitung des Spiels und Prüfung ob ein Ki Spieler vorhanden ist.
      */
     private void gamePreperation() {
-        System.out.println("Willkommen bei Schiffeversenken Alpha 5!!!" + "\n");
-        addGameGui();
-        addPlayerToGameGui(playerList);
-        if (playerList.get(player) instanceof AiPlayer) {
-            for (int i = 0; i < playerList.get(player).getShips().size();) {
-                if (!placeAiShip(player)) {
-                    System.out.println("Schiff konnte nicht gesetzt werden, bitte erneut setzen!");
-                } else {
-                    placeAiShip(player);
-                    shipsPlaced++;
-                    i++;
-                }
-            }
-            player++;
-        } else {
-            interactWithPlayer(playerList);
-            addPlayFieldMatrixListener();
+    	HelperStartGameDialog startGameDialog = new HelperStartGameDialog();
+        boolean dialogResult = startGameDialog.getResult();
+        if(dialogResult == true){
+	        System.out.println("Willkommen bei Schiffeversenken Alpha 5!!!" + "\n");
+	        addGameGui();
+	        addPlayerToGameGui(playerList);
+	        if (playerList.get(this.player) instanceof AiPlayer) {
+			    for (int i = 0; i < playerList.get(this.player).getShips().size();) {
+			    	boolean orientation = ((AiPlayer) playerList.get(player)).getAiOrientation();
+			        int xCoordinate = ((AiPlayer) playerList.get(player)).getAiRandomNumber(playerList, player);
+			        int yCoordinate = ((AiPlayer) playerList.get(player)).getAiRandomNumber(playerList, player);
+			        if (!checkAiShipPlacement(this.player, orientation, yCoordinate, xCoordinate)) {
+		        	System.out.println("Schiff konnte nicht gesetzt werden, bitte erneut setzen!");
+			        } else {
+			            placeAiShip(this.player, orientation, yCoordinate, xCoordinate);
+			            shipsPlaced++;
+			            i++;
+			        }
+			    }
+			    this.player++;
+	        } else {
+			    interactWithPlayer(playerList);
+			    addPlayFieldMatrixListener();
+			}
         }
+    }
+    
+    /**
+     * Der GameGui wird die Spieler- und die Schiffsliste hinzugefügt und angezeigt.
+     */
+    private void addGameGui() {
+        gameGui.showPlayers(playerList);
+        gameGui.showPlayerShips(player, playerList);
+        playerDialog = new HelperNextPlayerDialog("Alle Schiffe wurden gesetzt.");
+        addNextPlayerDialogListener();
+    }
+    
+    /**
+     * Der GameGui wird das Spieldfeld des Spielers hinzugefügt und angezeigt.
+     * @param playerList 
+     */
+    private void addPlayerToGameGui(ArrayList<Player> playerList) {
+        gameGui.addPlayerPlayField(player, playerList);
+        gameGui.showPlayerPlayField(player);
     }
 
     /**
@@ -95,27 +140,6 @@ public class Game implements Serializable, ActionListener {
 
     private void setUpAiGameContent() {
 
-    }
-
-    /**
-     * Der GameGui wird das Spieldfeld des Spielers hinzugefügt und angezeigt.
-     * @param playerList 
-     */
-    private void addPlayerToGameGui(ArrayList<Player> playerList) {
-        gameGui.addPlayerPlayField(player, playerList);
-        gameGui.showPlayerPlayField(player);
-
-    }
-    
-    /**
-     * Der GameGui wird die Spieler- und die Schiffsliste hinzugefügt und angezeigt.
-     */
-
-    private void addGameGui() {
-        gameGui.showPlayers(playerList);
-        gameGui.showPlayerShips(player, playerList);
-        playerDialog = new HelperNextPlayerDialog("Alle Schiffe wurden gesetzt.");
-        addNextPlayerDialogListener();
     }
 
     /**
@@ -154,28 +178,7 @@ public class Game implements Serializable, ActionListener {
         return playerList;
     }
 
-    /**
-     * Erstellt die Spieler
-     *
-     * @param Settings gameSettings
-     * @return ArrayList<Player> playerList
-     */
-    private ArrayList buildPlayerArray(Settings gameSettings) {
-        this.playerList = new ArrayList<>();
-        int playerNumber = 1;
-        for (int i = 0; i < gameSettings.getAmountOfPlayer(); i++) {
-            if (gameSettings.getAiArray()[i] == false) {
-                Player player = new HumanPlayer(playerNumber, gameSettings.getPlayerNames()[i], gameSettings, false);
-                playerList.add(player);
-                playerNumber++;
-            } else if (gameSettings.getAiArray()[i] == true) {
-                AiPlayer player = new AiPlayer(playerNumber, gameSettings.getPlayerNames()[i], gameSettings, true);
-                playerList.add(player);
-                playerNumber++;
-            }
-        }
-        return playerList;
-    }
+    
 
     /**
      * Setzt Schiffe
@@ -329,7 +332,6 @@ public class Game implements Serializable, ActionListener {
                     }
                 }
             }
-
 //                    }
 //                }
 //            }
@@ -337,16 +339,61 @@ public class Game implements Serializable, ActionListener {
         return true;
     }
 
+    private boolean checkAiShipPlacement(int player, boolean orientation, int yCoordinate, int xCoordinate) {
+
+    	boolean aiOrientation = orientation;
+
+        if (aiOrientation == true) {
+            for (int i = 0; i < playerList.get(player).getShips().get(shipsPlaced).getSize(); i++) {
+                try {
+                // Abfrage, welche prüft ob das Feld auf der das
+                    // Schiff gesetzt werden soll, deaktiviert ist.
+                    // Falls ja:
+                    // gibt die ganze Methode "false zurück".
+                    if (!playerList.get(player).getPlayerPlayFieldGui().getPlayfieldMatrix()[yCoordinate][xCoordinate + i]
+                            .isActive()) {
+                        System.out.println("Leider nicht moeglich," + "\n" + "das Schiff muss mindestens 1 Feld Abstand zum naechsten Schiff haben!");
+                        return false;
+                    }
+                // Falls das Schiff mit der Größe nicht in das
+                    // Array passt, fange die Fehlermeldung ab und
+                    // gib folgendes aus...
+                } catch (ArrayIndexOutOfBoundsException ex) {
+                    IO.println("Das Schiff passt so nicht auf das Spielfeld, bitte neue koordinaten eingeben!!!");
+                    return false;
+                }
+            }
+        } else {
+                       for (int i = 0; i < playerList.get(player).getShips().get(shipsPlaced).getSize(); i++) {
+                try {
+                // Abfrage, welche prüft ob das Feld auf der das
+                    // Schiff gesetzt werden soll, deaktiviert ist.
+                    // Falls ja:
+                    // gibt die ganze Methode "false zurück".
+                    if (!playerList.get(player).getPlayerPlayFieldGui().getPlayfieldMatrix()[yCoordinate + i][xCoordinate]
+                            .isActive()) {
+                        System.out.println("Leider nicht moeglich," + "\n" + "das Schiff muss mindestens 1 Feld Abstand zum naechsten Schiff haben!");
+                        return false;
+                    }
+                // Falls das Schiff mit der Größe nicht in das
+                    // Array passt, fange die Fehlermeldung ab und
+                    // gib folgendes aus...
+                } catch (ArrayIndexOutOfBoundsException ex) {
+                    IO.println("Das Schiff passt so nicht auf das Spielfeld, bitte neue koordinaten eingeben!!!");
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+    
     /**
      * Platziert KI-Schiff
      * @param player Spielerindex
      * @return Gibt Booleanwert zurück, ob das Schiff gesetzt werden kann
      */
-    private boolean placeAiShip(int player) {
+    private boolean placeAiShip(int player, boolean orientation, int xCoordinate, int yCoordinate) {
 
-        boolean orientation = ((AiPlayer) playerList.get(player)).getAiOrientation();
-        int xCoordinate = ((AiPlayer) playerList.get(player)).getAiRandomNumber(playerList, player);
-        int yCoordinate = ((AiPlayer) playerList.get(player)).getAiRandomNumber(playerList, player);
         // true = horizontal
         if (orientation == true) {
             for (int i = 0; i < playerList.get(player).getShips().get(shipsPlaced).getSize(); i++) {
