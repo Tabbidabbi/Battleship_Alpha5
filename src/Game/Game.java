@@ -32,6 +32,7 @@ public class Game implements Serializable, ActionListener {
     private ArrayList<Ship> shipList;
     private GameGui gameGui;
     private HelperNextPlayerDialog playerDialog;
+    private HelperStartGameDialog startGameDialog;
     private Settings gameSettings;
     private Settings currentGameSettings;
     private String coordinateInput;
@@ -52,14 +53,18 @@ public class Game implements Serializable, ActionListener {
         this.gameSettings = gameSettings;
         this.playerList = buildPlayerArray(gameSettings);
         this.gameGui = new GameGui(gameSettings);
-        gamePreperation();
+        HelperStartGameDialog startGameDialog = new HelperStartGameDialog();
+        boolean dialogResult = startGameDialog.getResult();
+        if(dialogResult == true){
+        	gamePreperation();
+        }
     }
     
     /**
      * Vorbereitung des Spiels und Prüfung ob ein Ki Spieler vorhanden ist.
      */
     private void gamePreperation() {
-        System.out.println("Willkommen bei Schiffeversenken Alpha 4!!!" + "\n");
+        System.out.println("Willkommen bei Schiffeversenken Alpha 5!!!" + "\n");
         addGameGui();
         addPlayerToGameGui(playerList);
         if (playerList.get(player) instanceof AiPlayer) {
@@ -333,7 +338,7 @@ public class Game implements Serializable, ActionListener {
     }
 
     /**
-     * Platziert KI-Schiffe
+     * Platziert KI-Schiff
      * @param player Spielerindex
      * @return Gibt Booleanwert zurück, ob das Schiff gesetzt werden kann
      */
